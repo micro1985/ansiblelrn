@@ -1,0 +1,21 @@
+<html>
+<head>
+<title>Example</title>
+</head>
+<body>
+<H1 ALIGN=CENTER>Hi!</H1>
+
+<font color="green">Owner of this Server is: {{ owner }}<br>
+<br><br>
+<H2>This is example of the HTML-document</H2>
+<P>Left, </P>
+<P ALIGN=CENTER>realy?</P>
+<P ALIGN=CENTER>realy-realy</P>
+<p><img src="simba.JPG" alt="Some cats"></p>
+<P ALIGN=RIGHT>Right.</P>
+<P ALIGN=CENTER>Server Host Name : {{ ansible_hostname  }}</P>
+<P ALIGN=CENTER>Server OS Family is : {{ ansible_os_family }}</P>
+<P ALIGN=CENTER>IP Address of this server is : {{ ansible_default_ipv4.address }}</P>
+
+</body>
+</html>
