@@ -1,0 +1,112 @@
+--- 
+- name: Install Wordpress
+  hosts: ubun
+  become: true
+
+  vars:
+    mysql_rootdb_pass: 123456
+
+  tasks:
+  - name: Update system
+    apt: update_cache=yes
+
+  - name: Install wordpress and dependencies
+    apt: name={{ item }} state=present
+    loop:
+    - wordpress
+    - php
+    - libapache2-mod-php
+    - mysql-server
+    - mysql-client
+    - php-mysql
+    - python3-mysqldb
+    - python3-dev
+#    - python3-pip
+    - python-pip
+    - libmysqlclient-dev
+
+  - name: Install MySQL python lib
+#    pip: name=MySQL-python state=present
+    shell: pip install MySQL-python
+
+  - name: Create conf file
+    copy:
+      dest: "/etc/apache2/sites-available/wordpress.conf"
+      content: |
+        Alias /blog /usr/share/wordpress
+        <Directory /usr/share/wordpress>
+            Options FollowSymLinks
+            AllowOverride Limit Options FileInfo
+            DirectoryIndex index.php
+            Order allow,deny
+            Allow from all
+        </Directory>
+        <Directory /usr/share/wordpress/wp-content>
+            Options FollowSymLinks
+            Order allow,deny
+            Allow from all
+        </Directory>
+
+  - name: Enable Wordpress
+    shell: "a2ensite wordpress"
+
+  - name: Apache rewrite
+    shell: "a2enmod rewrite"
+
+  - name: Reload Apache
+    service: name=apache2 state=restarted
+
+  - name: Start and Enable MySQL
+    service: name=mysql state=started enabled=yes
+
+  - name: Create'/root/.my.cnf'
+    template:
+      src: my.cnf.j2
+      dest: /root/.my.cnf
+      owner: root
+      mode: 0600
+    notify: Restart MySQL
+
+  - name: Update root password
+    mysql_user:
+      name: root
+      host: "{{ item }}"
+      login_unix_socket: /var/run/mysqld/mysqld.sock
+      password: "{{ mysql_rootdb_pass }}"
+      check_implicit_admin: true
+      priv: '*.*:ALL,GRANT'
+    with_items:
+    - "{{ ansible_hostname }}"
+    - 127.0.0.1
+    - localhost
+    notify: Restart MySQL
+
+  - name: Create Database
+    mysql_db: name=wordpress state=present
+
+  - name: Create DB User
+    mysql_user:
+      name: wordpress
+      password: 123456
+      priv: 'wordpress.*:ALL,GRANT'
+      state: present
+
+  - name: Create conf file for WP->DB
+    copy:
+      dest: "/etc/wordpress/config-{{ ansible_default_ipv4.address }}.php"
+      content: |
+        <?php
+        define('DB_NAME', 'wordpress');
+        define('DB_USER', 'wordpress');
+        define('DB_PASSWORD', '123456');
+        define('DB_HOST', 'localhost');
+        define('DB_COLLATE', 'utf8_general_ci');
+        define('WP_CONTENT_DIR', '/usr/share/wordpress/wp-content');
+        ?>
+    notify: Restart Apache
+
+  handlers:
+  - name: Restart MySQL
+    service: name=mysql state=restarted
+  - name: Restart Apache
+    service: name=apache2 state=restarted
