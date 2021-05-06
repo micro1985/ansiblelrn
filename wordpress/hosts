@@ -2,7 +2,7 @@
 192.168.150.53
 
 [ubun]
-192.168.150.50
+192.168.40.169
 
 [all:vars]
 ansible_python_interpreter=/usr/bin/python3

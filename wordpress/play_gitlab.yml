@@ -1,0 +1,38 @@
+---
+- name: Install GitLab
+  hosts: ubun
+  become: true
+
+  tasks:
+  - name: Update system
+    apt: update_cache=yes
+
+  - name: Install dependencies
+    apt: name={{ item }} state=present
+    loop:
+    - curl
+    - openssh-server
+    - ca-certificates
+    - tzdata
+    - perl
+    - postfix
+
+  - name: Download install script
+    get_url: 
+      url: https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh
+      dest: /opt/gitlab.sh
+      mode: 755
+  
+  - name: Start install script
+    command: /opt/gitlab.sh
+#    notify: SysUpdate
+
+  - name: Install GitLab CE
+    apt: name=gitlab-ce state=present
+
+  - name: GitLab Reconfigure
+    command: gitlab-ctl reconfigure
+  
+#  handlers:
+#  - name: SysUpdate
+#    apt: update_cache=yes
